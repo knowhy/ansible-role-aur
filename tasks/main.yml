@@ -1,0 +1,28 @@
+---
+
+- name: ensure path is present
+  file:
+    path: "/var/git/{{ pkg_name }}"
+    state: directory
+    recurse: True
+    owner: "{{ build_user }}"
+  register: repo
+      
+- name: checkout repository
+  git:
+    repo: "https://aur.archlinux.org/{{ pkg_name }}.git"
+    dest: "/var/git/{{ pkg_name }}"
+  become: True
+  become_user: root
+  when: repo.changed
+  
+- name: build and install
+  shell: "/usr/bin/makepkg -si --noconfirm --skipchecksums --skipinteg --skippgpcheck"
+  args:
+    chdir: "/var/git/{{ pkg_name }}"
+  become: True
+  become_user: "{{ build_user }}"
+  environment:
+    PATH: '${PATH}:/usr/bin/core_perl:/usr/bin:/usr/local/bin'
+  when: repo.changed
+
